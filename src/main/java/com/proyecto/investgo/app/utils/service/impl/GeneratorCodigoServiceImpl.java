@@ -1,7 +1,8 @@
-package com.proyecto.investgo.app.utils.service;
+package com.proyecto.investgo.app.utils.service.impl;
 
 import java.util.UUID;
 
+import com.proyecto.investgo.app.utils.service.IGeneratorCodigoService;
 import org.springframework.stereotype.Service;
 
 import com.proyecto.investgo.app.dto.IdentificadorDTO;

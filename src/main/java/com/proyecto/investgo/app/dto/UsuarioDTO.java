@@ -2,6 +2,7 @@ package com.proyecto.investgo.app.dto;
 
 import java.io.Serializable;
 
+import com.proyecto.investgo.app.entity.Rol;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,8 @@ public class UsuarioDTO implements Serializable {
 	private String apellidoPa;
 	private String apellidoMa;
 	private String telefono;
+	private String username;
+	private Rol rol;
 	private String correo;
 	private String dni;
 	private String foto;

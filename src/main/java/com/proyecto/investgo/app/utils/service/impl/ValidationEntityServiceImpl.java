@@ -1,10 +1,11 @@
-package com.proyecto.investgo.app.utils.service;
+package com.proyecto.investgo.app.utils.service.impl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.proyecto.investgo.app.utils.service.IValidationEntityService;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 

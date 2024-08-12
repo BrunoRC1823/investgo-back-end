@@ -46,9 +46,6 @@ public class MyUserDetailsService implements UserDetailsService {
 			log.info("Error en el login: El usuario con username: " + username + " no tiene roles asignados!");
 			throw new UsernameNotFoundException("No tiene roles asignados!");
 		}
-		ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
-		HttpSession session = attr.getRequest().getSession();
-		session.setAttribute("usuarioSession", usuario);
 		return new User(usuario.getUsername(), usuario.getPassword(), usuario.getAuditoria().getEnable(), true, true,
 				true, auth);
 	}

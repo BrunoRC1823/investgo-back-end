@@ -5,9 +5,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
+import com.proyecto.investgo.app.utils.service.IDecoderTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
@@ -41,131 +43,142 @@ import com.proyecto.investgo.app.utils.service.IValidationEntityService;
 @RequestMapping(DefaultValues.URL_API)
 @CrossOrigin(origins = DefaultValues.URL_CROSS_ORIGIN)
 public class TransaccionController {
-	@Autowired
-	private TransaccionService transaccionService;
-	@Autowired
-	private TipoTransaccionService tipoTransaccionService;
-	@Autowired
-	private CuentaBancariaService cuentaBancariaService;
-	@Autowired
-	private CarteraService carteraService;
-	@Autowired
-	private IValidationEntityService valService;
+    @Autowired
+    private TransaccionService transaccionService;
+    @Autowired
+    private TipoTransaccionService tipoTransaccionService;
+    @Autowired
+    private CuentaBancariaService cuentaBancariaService;
+    @Autowired
+    private CarteraService carteraService;
+    @Autowired
+    private IValidationEntityService valService;
+    @Autowired
+    private IDecoderTokenService decoderService;
 
-	@GetMapping("/v1/transacciones/listar-tipo/{idTipo}")
-	public ResponseEntity<?> listarxUsuarioActual(@PathVariable long idTipo, Paginador paginador, HttpSession session) {
-		HashMap<String, Object> salida = new HashMap<>();
-		Optional<TipoTransaccion> tipo = tipoTransaccionService.findById(idTipo);
-		if (tipo.isEmpty()) {
-			salida.put("mensaje", "No se encontro el tipo de transaccion enviado!");
-			return new ResponseEntity<>(salida, HttpStatus.NOT_FOUND);
-		}
-		Usuario usuSession = (Usuario) session.getAttribute("usuarioSession");
-		Page<TransaccionDTO> lista = transaccionService
-				.findAllByTipoTransaccionIdAndCuentaBancariaUsuarioIdOrderByCodigoDto(idTipo, usuSession.getId(),
-						paginador);
-		return ResponseEntity.ok(lista);
-	}
+    @GetMapping("/v1/transacciones/listar")
+    public ResponseEntity<?> listar(Paginador paginador, HttpServletRequest request) {
+        String idU = decoderService.getIdUser(request);
+        Page<TransaccionDTO> lista = transaccionService
+                .findAllByCuentaBancariaUsuarioId(idU,
+                        paginador);
+        return ResponseEntity.ok(lista);
+    }
 
-	@PreAuthorize("hasAnyRole('USER','ADMIN')")
-	@GetMapping("/v1/transacciones/listar-cuenta/{codigoCuenta}")
-	public ResponseEntity<?> listarxIdCuentaBancaria(@PathVariable String codigoCuenta, Paginador paginador,
-			HttpSession session) {
-		HashMap<String, Object> salida = new HashMap<>();
-		Usuario usuSession = (Usuario) session.getAttribute("usuarioSession");
-		boolean existe = cuentaBancariaService.validarPropietarioCuenta(usuSession.getId(), codigoCuenta);
-		if (!existe) {
-			salida.put("mensaje", "La cuenta bancaria no existe!");
-			return new ResponseEntity<>(salida, HttpStatus.NOT_FOUND);
-		}
-		Optional<CuentaBancaria> ctaOp = cuentaBancariaService.findByCodigo(codigoCuenta);
-		Page<TransaccionDTO> lista = transaccionService.findAllByCuentaBancariaIdOrderByCodigoDto(ctaOp.get().getId(),
-				paginador);
-		return ResponseEntity.ok(lista);
+    @GetMapping("/v1/transacciones/listar-tipo/{idTipo}")
+    public ResponseEntity<?> listarxUsuarioActual(@PathVariable long idTipo, Paginador paginador, HttpServletRequest request) {
+        HashMap<String, Object> salida = new HashMap<>();
+        Optional<TipoTransaccion> tipo = tipoTransaccionService.findById(idTipo);
+        if (tipo.isEmpty()) {
+            salida.put("mensaje", "No se encontro el tipo de transaccion enviado!");
+            return new ResponseEntity<>(salida, HttpStatus.NOT_FOUND);
+        }
+        String idU = decoderService.getIdUser(request);
+        Page<TransaccionDTO> lista = transaccionService
+                .findAllByTipoTransaccionIdAndCuentaBancariaUsuarioIdOrderByCodigoDto(idTipo, idU,
+                        paginador);
+        return ResponseEntity.ok(lista);
+    }
 
-	}
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @GetMapping("/v1/transacciones/listar-cuenta/{codigoCuenta}")
+    public ResponseEntity<?> listarxIdCuentaBancaria(@PathVariable String codigoCuenta, Paginador paginador,
+                                                     HttpServletRequest request) {
+        HashMap<String, Object> salida = new HashMap<>();
+        String idU = decoderService.getIdUser(request);
+        boolean existe = cuentaBancariaService.validarPropietarioCuenta(idU, codigoCuenta);
+        if (!existe) {
+            salida.put("mensaje", "La cuenta bancaria no existe!");
+            return new ResponseEntity<>(salida, HttpStatus.NOT_FOUND);
+        }
+        Optional<CuentaBancaria> ctaOp = cuentaBancariaService.findByCodigo(codigoCuenta);
+        Page<TransaccionDTO> lista = transaccionService.findAllByCuentaBancariaIdOrderByCodigoDto(ctaOp.get().getId(),
+                paginador);
+        return ResponseEntity.ok(lista);
 
-	@PreAuthorize("hasAnyRole('USER','ADMIN')")
-	@PostMapping("/v1/transacciones/deposito")
-	public ResponseEntity<?> depositarCuenta(@RequestBody @Valid Transaccion transaccion, BindingResult result,
-			HttpSession session) {
-		Map<String, Object> salida = new HashMap<>();
-		if (result.hasErrors()) {
-			salida = valService.validar(result);
-			return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
-		}
-		try {
-			Usuario usuSession = (Usuario) session.getAttribute("usuarioSession");
-			boolean existe = cuentaBancariaService.validarPropietarioCuenta(usuSession.getId(),
-					transaccion.getCuentaBancaria().getCodigo());
-			if (!existe) {
-				salida.put("mensaje", "La cuenta bancaria no existe!");
-				return new ResponseEntity<>(salida, HttpStatus.NOT_FOUND);
-			}
-			Optional<Cartera> carteraOp = carteraService.findByUsuarioId(usuSession.getId());
-			Optional<CuentaBancaria> ctaOp = cuentaBancariaService
-					.findByCodigo(transaccion.getCuentaBancaria().getCodigo());
-			if (transaccion.getMonto().compareTo(ctaOp.get().getSaldo()) > 0) {
-				salida.put("mensaje", "No cuenta con saldo suficiente en su cuenta Bancaria!");
-				return new ResponseEntity<>(salida, HttpStatus.CONFLICT);
-			}
-			boolean newTrans = transaccionService.saveDeposito(transaccion, ctaOp.get(), carteraOp.get());
-			if (!newTrans) {
-				salida.put("mensaje", "No se registro el deposito!");
-				return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
-			}
-			salida.put("mensaje", "Deposito realizado con exito");
-			return ResponseEntity.ok(salida);
+    }
 
-		} catch (DataAccessException e) {
-			salida.put("mensaje", "Error al registrar el deposito");
-			salida.put("error", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
-			return new ResponseEntity<>(salida, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PostMapping("/v1/transacciones/deposito")
+    public ResponseEntity<?> depositarCuenta(@RequestBody @Valid Transaccion transaccion, BindingResult result,
+                                             HttpServletRequest request) {
+        Map<String, Object> salida = new HashMap<>();
+        if (result.hasErrors()) {
+            salida = valService.validar(result);
+            return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
+        }
+        try {
+            String idU = decoderService.getIdUser(request);
+            boolean existe = cuentaBancariaService.validarPropietarioCuenta(idU,
+                    transaccion.getCuentaBancaria().getCodigo());
+            if (!existe) {
+                salida.put("mensaje", "La cuenta bancaria no existe!");
+                return new ResponseEntity<>(salida, HttpStatus.NOT_FOUND);
+            }
+            Optional<Cartera> carteraOp = carteraService.findByUsuarioId(idU);
+            Optional<CuentaBancaria> ctaOp = cuentaBancariaService
+                    .findByCodigo(transaccion.getCuentaBancaria().getCodigo());
+            if (transaccion.getMonto().compareTo(ctaOp.get().getSaldo()) > 0) {
+                salida.put("mensaje", "No cuenta con saldo suficiente en su cuenta Bancaria!");
+                return new ResponseEntity<>(salida, HttpStatus.CONFLICT);
+            }
+            boolean newTrans = transaccionService.saveDeposito(transaccion, ctaOp.get(), carteraOp.get());
+            if (!newTrans) {
+                salida.put("mensaje", "No se registro el deposito!");
+                return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
+            }
+            salida.put("mensaje", "Deposito realizado con exito");
+            return ResponseEntity.ok(salida);
 
-	@PreAuthorize("hasAnyRole('USER','ADMIN')")
-	@PostMapping("/v1/transacciones/retiro")
-	public ResponseEntity<?> retirarCuenta(@RequestBody @Valid Transaccion transaccion, BindingResult result,
-			HttpSession session) {
-		Map<String, Object> salida = new HashMap<>();
-		if (result.hasErrors()) {
-			salida = valService.validar(result);
-			return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
-		}
-		try {
-			Usuario usuSession = (Usuario) session.getAttribute("usuarioSession");
-			boolean existe = cuentaBancariaService.validarPropietarioCuenta(usuSession.getId(),
-					transaccion.getCuentaBancaria().getCodigo());
-			if (!existe) {
-				salida.put("mensaje", "La cuenta bancaria no existe!");
-				return new ResponseEntity<>(salida, HttpStatus.NOT_FOUND);
-			}
-			Optional<Cartera> carteraOp = carteraService.findByUsuarioId(usuSession.getId());
-			Optional<CuentaBancaria> ctaOp = cuentaBancariaService
-					.findByCodigo(transaccion.getCuentaBancaria().getCodigo());
-			if (transaccion.getMonto().compareTo(carteraOp.get().getSaldo()) > 0) {
-				salida.put("mensaje", "No cuenta con saldo suficiente en su cartera!");
-				return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
-			}
-			boolean newTrans = transaccionService.saveRetiro(transaccion, ctaOp.get(), carteraOp.get());
-			if (!newTrans) {
-				salida.put("mensaje", "No se registro la transaccion!");
-				return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
-			}
-			salida.put("mensaje", "Retiro realizado con exito");
-			return ResponseEntity.ok(salida);
-		} catch (DataAccessException e) {
-			salida.put("mensaje", "Error al registrar el retiro");
-			salida.put("error", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
-			return new ResponseEntity<>(salida, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
+        } catch (DataAccessException e) {
+            salida.put("mensaje", "Error al registrar el deposito");
+            salida.put("error", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+            return new ResponseEntity<>(salida, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-	@PreAuthorize("hasAnyRole('USER','ADMIN')")
-	@GetMapping("/v1/tipos-transacciones")
-	public ResponseEntity<List<TipoTransaccion>> listarTiposTransacciones() {
-		List<TipoTransaccion> lista = tipoTransaccionService.findAll();
-		return ResponseEntity.ok(lista);
-	}
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PostMapping("/v1/transacciones/retiro")
+    public ResponseEntity<?> retirarCuenta(@RequestBody @Valid Transaccion transaccion, BindingResult result,
+                                           HttpServletRequest request) {
+        Map<String, Object> salida = new HashMap<>();
+        if (result.hasErrors()) {
+            salida = valService.validar(result);
+            return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
+        }
+        try {
+            String idU = decoderService.getIdUser(request);
+            boolean existe = cuentaBancariaService.validarPropietarioCuenta(idU,
+                    transaccion.getCuentaBancaria().getCodigo());
+            if (!existe) {
+                salida.put("mensaje", "La cuenta bancaria no existe!");
+                return new ResponseEntity<>(salida, HttpStatus.NOT_FOUND);
+            }
+            Optional<Cartera> carteraOp = carteraService.findByUsuarioId(idU);
+            Optional<CuentaBancaria> ctaOp = cuentaBancariaService
+                    .findByCodigo(transaccion.getCuentaBancaria().getCodigo());
+            if (transaccion.getMonto().compareTo(carteraOp.get().getSaldo()) > 0) {
+                salida.put("mensaje", "No cuenta con saldo suficiente en su cartera!");
+                return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
+            }
+            boolean newTrans = transaccionService.saveRetiro(transaccion, ctaOp.get(), carteraOp.get());
+            if (!newTrans) {
+                salida.put("mensaje", "No se registro la transaccion!");
+                return new ResponseEntity<>(salida, HttpStatus.BAD_REQUEST);
+            }
+            salida.put("mensaje", "Retiro realizado con exito");
+            return ResponseEntity.ok(salida);
+        } catch (DataAccessException e) {
+            salida.put("mensaje", "Error al registrar el retiro");
+            salida.put("error", e.getMessage().concat(": ").concat(e.getMostSpecificCause().getMessage()));
+            return new ResponseEntity<>(salida, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @GetMapping("/v1/tipos-transacciones")
+    public ResponseEntity<List<TipoTransaccion>> listarTiposTransacciones() {
+        List<TipoTransaccion> lista = tipoTransaccionService.findAll();
+        return ResponseEntity.ok(lista);
+    }
 }

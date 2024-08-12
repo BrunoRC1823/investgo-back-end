@@ -10,6 +10,7 @@ import io.jsonwebtoken.Claims;
 
 public interface IJWTService {
 	public String createToken(Authentication auth) throws IOException;
+	public String refreshToken(Authentication auth) throws IOException;
 
 	public boolean validate(String token);
 

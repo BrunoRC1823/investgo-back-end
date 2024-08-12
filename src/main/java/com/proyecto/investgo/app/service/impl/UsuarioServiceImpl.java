@@ -129,7 +129,16 @@ public class UsuarioServiceImpl implements UsuarioService {
 	public Optional<Usuario> findByUsernameWithRoles(String username) {
 		return usuarioRepo.findByUsernameWithRoles(username);
 	}
-
+	@Override
+	@Transactional(readOnly = true)
+	public Optional<UsuarioDTO> findByUsernameWithRolesDto(String username) {
+		Optional<Usuario> usuario = usuarioRepo.findByUsernameWithRoles(username);
+		if (usuario.isEmpty()) {
+			return Optional.empty();
+		}
+		UsuarioDTO usuarioDto = modelMapper.map(usuario.get(), UsuarioDTO.class);
+		return Optional.ofNullable(usuarioDto);
+	}
 	@Override
 	@Transactional(readOnly = true)
 	public Optional<UsuarioDTO> findByCodigoDto(String codigo) {

@@ -3,6 +3,7 @@ package com.proyecto.investgo.app.repository;
 import java.util.List;
 import java.util.Optional;
 
+import com.proyecto.investgo.app.dto.TransaccionDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,5 @@ public interface TransaccionRepository extends JpaRepository<Transaccion, String
 
 	Page<Transaccion> findAllByTipoTransaccionIdAndCuentaBancariaUsuarioIdOrderByCodigo(long idTipo, String idUsu,
 			Pageable pageable);
+	Page<Transaccion> findAllByCuentaBancariaUsuarioId(String idUsu, Pageable pageable);
 }

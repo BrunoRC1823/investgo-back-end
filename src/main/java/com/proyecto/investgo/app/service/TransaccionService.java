@@ -9,6 +9,7 @@ import com.proyecto.investgo.app.entity.Cartera;
 import com.proyecto.investgo.app.entity.CuentaBancaria;
 import com.proyecto.investgo.app.entity.Transaccion;
 import com.proyecto.investgo.app.utils.Paginador;
+import org.springframework.data.domain.Pageable;
 
 public interface TransaccionService {
 	Boolean save(Transaccion trans);
@@ -25,4 +26,5 @@ public interface TransaccionService {
 
 	Page<TransaccionDTO> findAllByTipoTransaccionIdAndCuentaBancariaUsuarioIdOrderByCodigoDto(long idTipo, String idUsu,
 			Paginador paginador);
+	Page<TransaccionDTO> findAllByCuentaBancariaUsuarioId(String idUsu, Paginador pageable);
 }

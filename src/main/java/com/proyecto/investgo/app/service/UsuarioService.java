@@ -28,6 +28,7 @@ public interface UsuarioService {
 	Boolean updateAdmin(Usuario usuario);
 
 	Optional<Usuario> findByUsernameWithRoles(String username);
+	Optional<UsuarioDTO> findByUsernameWithRolesDto(String username);
 
 	Optional<Usuario> findByCodigo(String id);
 

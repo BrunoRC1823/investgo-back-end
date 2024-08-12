@@ -2,6 +2,7 @@ package com.proyecto.investgo.app.auth;
 
 import java.util.Collections;
 
+import com.proyecto.investgo.app.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,7 +33,8 @@ public class SpringSecurityConfig {
 
 	@Autowired
 	private IJWTService jwtService;
-
+	@Autowired
+	private UsuarioService usuService;
 	@Autowired
 	public void userDetailsService(AuthenticationManagerBuilder build) throws Exception {
 		build.userDetailsService(userDetailService).passwordEncoder(passwordEncoder());
@@ -61,7 +63,7 @@ public class SpringSecurityConfig {
 	SecurityFilterChain web(HttpSecurity http) throws Exception {
 		http.cors().and().csrf().disable().authorizeHttpRequests().antMatchers("/api/v1/auth/**", "/api/v1/sing-up")
 				.permitAll().anyRequest().authenticated().and()
-				.addFilter(new JWTAuthenticationFilter(authenticationManager(), jwtService))
+				.addFilter(new JWTAuthenticationFilter(authenticationManager(), jwtService, usuService))
 				.addFilter(new JWTAuthorizationFilter(authenticationManager(), jwtService)).sessionManagement()
 				.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 		return http.build();

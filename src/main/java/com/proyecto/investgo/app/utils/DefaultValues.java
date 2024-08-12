@@ -3,6 +3,7 @@ package com.proyecto.investgo.app.utils;
 public class DefaultValues {
 	public static final String URL_CROSS_ORIGIN = "http://localhost:4200";
 	public static final String URL_API = "/api";
+	public static final String CLAIM_ID = "idU";
 	public static final Long DEFAULT_ID_ROL = 2L;
 	public static final Long DEFAULT_ID_RIESGO = 4L;
 	public static final Long DEFAULT_MOUNTHS = 2L;

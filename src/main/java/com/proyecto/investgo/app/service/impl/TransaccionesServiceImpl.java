@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,6 +96,12 @@ public class TransaccionesServiceImpl implements TransaccionService {
 			String idUsu, Paginador paginador) {
 		Page<Transaccion> lista = transRepo.findAllByTipoTransaccionIdAndCuentaBancariaUsuarioIdOrderByCodigo(idTipo,
 				idUsu, paginador.getPageable());
+		return lista.map(t -> modelMapper.map(t, TransaccionDTO.class));
+	}
+
+	@Override
+	public Page<TransaccionDTO> findAllByCuentaBancariaUsuarioId(String idUsu, Paginador paginador) {
+		Page<Transaccion> lista = transRepo.findAllByCuentaBancariaUsuarioId(idUsu,paginador.getPageable());
 		return lista.map(t -> modelMapper.map(t, TransaccionDTO.class));
 	}
 
